@@ -22,8 +22,8 @@ use stylus_sdk::{
 };
 
 sol! {
+    error AlreadyInitialized();
     error NotPinger();
-    error PingerRoleAlreadyClaimed();
 
     event Ping();
     event Pong(bytes32 txHash);
@@ -32,20 +32,21 @@ sol! {
 sol_storage! {
     #[entrypoint]
     pub struct Contract {
+        bool initialized;
         address pinger;
     }
 }
 
 pub enum ContractError {
+    AlreadyInitialized(AlreadyInitialized),
     NotPinger(NotPinger),
-    PingerRoleAlreadyClaimed(PingerRoleAlreadyClaimed),
 }
 
 impl From<ContractError> for Vec<u8> {
     fn from(val: ContractError) -> Self {
         match val {
             ContractError::NotPinger(err) => err.encode(),
-            ContractError::PingerRoleAlreadyClaimed(err) => err.encode(),
+            ContractError::AlreadyInitialized(err) => err.encode(),
         }
     }
 }
@@ -54,11 +55,12 @@ type Result<T, E = ContractError> = core::result::Result<T, E>;
 
 #[external]
 impl Contract {
-    pub fn claim_pinger(&mut self) -> Result<()> {
-        if self.pinger.get() != Address::ZERO {
-            return Err(ContractError::PingerRoleAlreadyClaimed(PingerRoleAlreadyClaimed {}));
+    pub fn init(&mut self) -> Result<()> {
+        if self.initialized.get() {
+            return Err(ContractError::AlreadyInitialized(AlreadyInitialized {}));
         }
 
+        self.initialized.set(true);
         self.pinger.set(msg::sender());
 
         Ok(())

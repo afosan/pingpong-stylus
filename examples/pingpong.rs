@@ -33,10 +33,10 @@ async fn main() -> eyre::Result<()> {
     abigen!(
         PingPong,
         r#"[
-            function claimPinger() external
-            function pinger() external view returns (address)
-            function ping() external view
-            function pong(bytes32 tx_hash) external pure
+            function init() external
+            function pinger() external returns (address)
+            function ping() external
+            function pong(bytes32 tx_hash) external
         ]"#
     );
 
@@ -56,7 +56,7 @@ async fn main() -> eyre::Result<()> {
     println!("PingPong pinger = {:?}", pinger);
 
     if pinger == Address::zero() {
-        let _ = pingpong.claim_pinger().send().await?.log_msg("Send a tx to claim pinger role").await?;
+        let _ = pingpong.init().send().await?.log_msg("Send a tx to init contract").await?;
     }
 
     let pinger = pingpong.pinger().call().await?;
